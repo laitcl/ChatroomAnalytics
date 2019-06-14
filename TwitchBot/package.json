@@ -1,0 +1,15 @@
+{
+  "name": "twitchbot",
+  "version": "1.0.0",
+  "description": "Lawrence Lai's Insight data engineering project",
+  "main": "chatbot_Lai (copy).js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "file-system": "^2.2.2"
+  },
+  "devDependencies": {}
+}
