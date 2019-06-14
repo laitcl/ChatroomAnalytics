@@ -1,19 +1,12 @@
 const tmi = require('tmi.js');
+var credentials = require('./credentials');
 
 // Setup Writefile
 const fs = require('fs');
 const writepath='messagelog.csv'
 
 // Define configuration options
-const opts = {
-  identity: {
-    username: "Redacted",
-    password: "Redacted"
-  },
-  channels: [
-    "laitcl",
-  ]
-};
+const opts = credentials.opts;
 
 // Create a client with our options
 const client = new tmi.client(opts);
