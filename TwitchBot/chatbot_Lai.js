@@ -32,13 +32,32 @@ function rollDice () {
   return Math.floor(Math.random() * sides) + 1;
 }
 
-// Function called whenever line of text should be outputted to CSV
+// Function called whenever line of text should be outputted
 function writemessage(target, msg) {
   datestring = fulldate()
-  fs.appendFile(writepath, datestring +target+','+ msg+ '\r\n', (err) => {
-    // In case of a error throw err.
-    if (err) throw err;
-})
+  outputmessage = datestring +target+','+ msg+ '\r\n'
+  //  Outputs to Kafka and check status of output
+  var queuedSuccess = stream.write(Buffer.from(outputmessage));
+  if (queuedSuccess) {
+    console.log('We queued our message!');
+  } else {
+    // Note that this only tells us if the stream's queue is full,
+    // it does NOT tell us if the message got to Kafka!  See below...
+    console.log('Too many messages in our queue already');
+  }
+
+  // NOTE: MAKE SURE TO LISTEN TO THIS IF YOU WANT THE STREAM TO BE DURABLE
+  // Otherwise, any error will bubble up as an uncaught exception.
+  stream.on('error', function (err) {
+    // Here's where we'll know if something went wrong sending to Kafka
+    console.error('Error in our kafka stream');
+    console.error(err);
+  })
+//  Output to CSV components
+//  fs.appendFile(writepath, outputmessage, (err) => {
+//    // In case of a error throw err.
+//    if (err) throw err;
+//})
 }
 
 //Get date
@@ -67,22 +86,3 @@ var stream = Kafka.Producer.createWriteStream({
 }, {}, {
   topic: 'twitchmessages'
 });
-
-// Writes a message to the stream
-var queuedSuccess = stream.write(Buffer.from('Awesome message'));
-
-if (queuedSuccess) {
-  console.log('We queued our message!');
-} else {
-  // Note that this only tells us if the stream's queue is full,
-  // it does NOT tell us if the message got to Kafka!  See below...
-  console.log('Too many messages in our queue already');
-}
-
-// NOTE: MAKE SURE TO LISTEN TO THIS IF YOU WANT THE STREAM TO BE DURABLE
-// Otherwise, any error will bubble up as an uncaught exception.
-stream.on('error', function (err) {
-  // Here's where we'll know if something went wrong sending to Kafka
-  console.error('Error in our kafka stream');
-  console.error(err);
-})
