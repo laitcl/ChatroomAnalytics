@@ -9,7 +9,8 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "file-system": "^2.2.2"
+    "file-system": "^2.2.2",
+    "node-rdkafka": "^2.7.0"
   },
   "devDependencies": {}
 }

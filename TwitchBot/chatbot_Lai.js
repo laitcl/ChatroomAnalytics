@@ -1,5 +1,6 @@
 const tmi = require('tmi.js');
 var credentials = require('./credentials');
+var Kafka = require('node-rdkafka');
 
 // Setup Writefile
 const fs = require('fs');
@@ -31,13 +32,32 @@ function rollDice () {
   return Math.floor(Math.random() * sides) + 1;
 }
 
-// Function called whenever line of text should be outputted to CSV
+// Function called whenever line of text should be outputted
 function writemessage(target, msg) {
   datestring = fulldate()
-  fs.appendFile(writepath, datestring +target+','+ msg+ '\r\n', (err) => {
-    // In case of a error throw err.
-    if (err) throw err;
-})
+  outputmessage = datestring +target+','+ msg+ '\r\n'
+  //  Outputs to Kafka and check status of output
+  var queuedSuccess = stream.write(Buffer.from(outputmessage));
+  if (queuedSuccess) {
+    console.log('We queued our message!');
+  } else {
+    // Note that this only tells us if the stream's queue is full,
+    // it does NOT tell us if the message got to Kafka!  See below...
+    console.log('Too many messages in our queue already');
+  }
+
+  // NOTE: MAKE SURE TO LISTEN TO THIS IF YOU WANT THE STREAM TO BE DURABLE
+  // Otherwise, any error will bubble up as an uncaught exception.
+  stream.on('error', function (err) {
+    // Here's where we'll know if something went wrong sending to Kafka
+    console.error('Error in our kafka stream');
+    console.error(err);
+  })
+//  Output to CSV components
+//  fs.appendFile(writepath, outputmessage, (err) => {
+//    // In case of a error throw err.
+//    if (err) throw err;
+//})
 }
 
 //Get date
@@ -58,3 +78,11 @@ function fulldate() {
 function onConnectedHandler (addr, port) {
   console.log(`* Connected to ${addr}:${port}`);
 }
+
+// Our producer with its Kafka brokers
+// This call returns a new writable stream to our topic 'topic-name'
+var stream = Kafka.Producer.createWriteStream({
+  'metadata.broker.list': 'ec2-54-227-1-239.compute-1.amazonaws.com:9092,ec2-3-81-154-244.compute-1.amazonaws.com:9092,ec2-3-211-133-15.compute-1.amazonaws.com:9092,ec2-3-214-179-13.compute-1.amazonaws.com:9092'
+}, {}, {
+  topic: 'twitchmessages'
+});
