@@ -1,5 +1,7 @@
 const tmi = require('tmi.js');
 var credentials = require('./credentials');
+var hdfs = new(require("node-webhdfs")).WebHDFSClient({ user: 'hdfsuser', host: "localhost", namenode_port: 50070 });
+var hdfsFile = "/user/messagelog.csv";
 
 // Setup Writefile
 const fs = require('fs');
@@ -34,7 +36,8 @@ function rollDice () {
 // Function called whenever line of text should be outputted to CSV
 function writemessage(target, msg) {
   datestring = fulldate()
-  fs.appendFile(writepath, datestring +target+','+ msg+ '\r\n', (err) => {
+    hdfs.append(hdfsFile, datestring +target+','+ msg+ '\r\n', (err) => {
+    //fs.appendFile(writepath, datestring +target+','+ msg+ '\r\n', (err) => {
     // In case of a error throw err.
     if (err) throw err;
 })
