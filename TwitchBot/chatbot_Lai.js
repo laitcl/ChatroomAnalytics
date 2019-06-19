@@ -23,7 +23,7 @@ client.connect();
 function onMessageHandler (target, context, msg, self) {
   if (self) { return; } // Ignore messages from the bot
   //console.log(`* Target ${target} Context ${context} message ${msg} self${self}`);
-  writemessage(target, msg)
+  writemessageKafka(target, msg)
 }
 
 // Function called when the "dice" command is issued
@@ -33,18 +33,28 @@ function rollDice () {
 }
 
 // Function called whenever line of text should be outputted
-function writemessage(target, msg) {
+function writemessageKafka(target, msg) {
   datestring = fulldate()
+  target = target.substr(1);
   outputmessage = datestring +target+','+ msg+ '\r\n'
+  //console.log(outputmessage)
   //  Outputs to Kafka and check status of output
+  // Kafka Producer
+  // This call returns a new writable stream to our topic 'topic-name'
+  var stream = Kafka.Producer.createWriteStream({
+    'metadata.broker.list': 'ec2-3-81-154-244.compute-1.amazonaws.com, ec2-54-227-1-239.compute-1.amazonaws.com'
+  }, {}, {
+    topic: target
+  });
+
   var queuedSuccess = stream.write(Buffer.from(outputmessage));
-  if (queuedSuccess) {
-    console.log('We queued our message!');
-  } else {
-    // Note that this only tells us if the stream's queue is full,
-    // it does NOT tell us if the message got to Kafka!  See below...
-    console.log('Too many messages in our queue already');
-  }
+    if (queuedSuccess) {
+      console.log('Message queued on ' + datestring);
+    } else {
+      // Note that this only tells us if the stream's queue is full,
+      // it does NOT tell us if the message got to Kafka!  See below...
+      console.log('Too many messages in our queue already');
+    }
 
   // NOTE: MAKE SURE TO LISTEN TO THIS IF YOU WANT THE STREAM TO BE DURABLE
   // Otherwise, any error will bubble up as an uncaught exception.
@@ -53,7 +63,12 @@ function writemessage(target, msg) {
     console.error('Error in our kafka stream');
     console.error(err);
   })
+}
+
+function writemessageCSV(target, msg) {
 //  Output to CSV components
+  datestring = fulldate()
+  outputmessage = datestring +target+','+ msg+ '\r\n'
 //  fs.appendFile(writepath, outputmessage, (err) => {
 //    // In case of a error throw err.
 //    if (err) throw err;
@@ -78,11 +93,3 @@ function fulldate() {
 function onConnectedHandler (addr, port) {
   console.log(`* Connected to ${addr}:${port}`);
 }
-
-// Our producer with its Kafka brokers
-// This call returns a new writable stream to our topic 'topic-name'
-var stream = Kafka.Producer.createWriteStream({
-  'metadata.broker.list': 'ec2-54-227-1-239.compute-1.amazonaws.com:9092,ec2-3-81-154-244.compute-1.amazonaws.com:9092,ec2-3-211-133-15.compute-1.amazonaws.com:9092,ec2-3-214-179-13.compute-1.amazonaws.com:9092'
-}, {}, {
-  topic: 'twitchmessages'
-});
