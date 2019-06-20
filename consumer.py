@@ -31,10 +31,9 @@ def followlog(chatlog):
         yield line
 
 def processline(line):
-    date = line.split("'",1)[1]
-    [date, channel, text] = date.split(",",2)
+    [date, channel, text] = line.split(",",2)
     [date, timeofday] = date.split("_",1)
-    text = text.split("\\r",1)[0]
+    text = text.split("\r",1)[0]
     return [date, timeofday, channel, text]
 
 def wordcountline(dictionary,text):
@@ -54,7 +53,7 @@ def animatedplot(channelnumlines, channelxs, channelys, channelsentiments):
     channelnumber = 0
     for channel in channelnumlines:
         # Add x and y to lists
-        channelxs[channel].append(strftime("%H:%M:%S", gmtime()))#The year month date, optional,can be called here %Y-%m-%d 
+        channelxs[channel].append(strftime("%H:%M:%S", gmtime()))#The year month date, optional,can be called here %Y-%m-%d
         channelys[channel].append(channelnumlines[channel])
         # Limit x and y lists to 10 items
         channelxs[channel] = channelxs[channel][-10:]
@@ -65,7 +64,7 @@ def animatedplot(channelnumlines, channelxs, channelys, channelsentiments):
         channelnumlines[channel]=0#Reset the number of lines for each channel
         channelsentiments[channel] = initializeintentcounter(unique_intent)#Reset channel intent
     return [channelnumlines, channelsentiments]
-    
+
 def singleplot(channel, channelxs, channelys, latestchannelsentiment, channelnumber):
     #Plots for a single channel
     # Draw x and y lists
@@ -81,13 +80,13 @@ def singleplot(channel, channelxs, channelys, latestchannelsentiment, channelnum
     plt.xlabel('Time')
     plt.draw()
     plt.pause(0.1)
-    
+
 def initializenumlines(channel, channelnumlines, channelys, channelxs):
     channelnumlines[channel]=0
     channelys[channel]=[]
     channelxs[channel]=[]
     return [channelnumlines, channelys, channelxs]
-    
+
 def initializeintentcounter(unique_intent):
     intentdictionary = {}
     for intent in unique_intent:
@@ -110,7 +109,7 @@ model.load_weights('IntentClassification/model_weights.h5')
 #Load Word Tokenizer
 with open('IntentClassification/tokenizer.pickle', 'rb') as handle:
     word_tokenizer = pickle.load(handle)
-    
+
 #Load Max Length of a message
 with open('IntentClassification/maxlen.txt', 'r') as f2:
     max_length = int(f2.readline())
@@ -122,7 +121,7 @@ if __name__ == '__main__':
     starttime = time.time()
     logtimeinterval = 5
     #For counting messages
-    channelnumlines = {} 
+    channelnumlines = {}
     channelxs = {}
     channelys = {}
     #For intent classification
@@ -133,7 +132,7 @@ if __name__ == '__main__':
     with open ('channellist.txt','r') as source:
         for line in source:
             topics.append(line.split('\n')[0])
-    consumer = KafkaConsumer( 
+    consumer = KafkaConsumer(
         *topics,
          bootstrap_servers=['localhost:9092'],
          auto_offset_reset='earliest',
@@ -144,18 +143,18 @@ if __name__ == '__main__':
     for message in consumer:
         print(message.value)
         line = str(message.value)
-        [date,timeofday,channel,text] = processline(line)
+        [date,timeofday,channel,text] = processline(line.decode())
         if channel not in channelnumlines:
             #If channel wasn't previously tracked, start tracking
             [channelnumlines, channelys, channelxs] = initializenumlines(channel, channelnumlines, channelys, channelxs)
             channelsentiments[channel] = initializeintentcounter(unique_intent)
         channelsentiments[channel] = getmessagesentiment(channelsentiments[channel], word_tokenizer, text, model, max_length, unique_intent)#Increment a sentiment
         channelnumlines[channel] += 1#Increment the number of messages in that channel
-        
+
         #Every interval, perform analysis
         if time.time() - starttime >= logtimeinterval:
             #clear_output()
             #[channelnumlines, channelsentiments] = animatedplot(channelnumlines, channelxs, channelys, channelsentiments)#Plot the number of messages for each channel
             print(channelsentiments)
             print(channelnumlines)
-            starttime = time.time()#Reset the start time    
+            starttime = time.time()#Reset the start time
