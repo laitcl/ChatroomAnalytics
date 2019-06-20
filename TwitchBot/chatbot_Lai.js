@@ -36,6 +36,7 @@ function rollDice () {
 function writemessageKafka(target, msg) {
   datestring = fulldate()
   target = target.substr(1);
+  console.log(target)
   outputmessage = datestring +target+','+ msg+ '\r\n'
   //console.log(outputmessage)
   //  Outputs to Kafka and check status of output
