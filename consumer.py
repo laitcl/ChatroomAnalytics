@@ -15,6 +15,8 @@ import pickle
 import operator
 import kafka
 from kafka import KafkaConsumer
+import boto3
+import json
 
 #Import my functions from the sentiment analysis
 import IntentClassification.Intent_Classification_Lai
@@ -153,17 +155,19 @@ if __name__ == '__main__':
 
         #Every interval, perform analysis
         if time.time() - starttime >= logtimeinterval:
-            print("in loop")
             #clear_output()
             #[channelnumlines, channelsentiments] = animatedplot(channelnumlines, channelxs, channelys, channelsentiments)#Plot the number of messages for each channel
             for channel in channelnumlines:
-                print(datetime.datetime.now())
-                print(channel)
-                print(channelnumlines[channel])
-                print(channelsentiments[channel])
-                print(" ")
-                print(" ")
-                channelnumlines[channel]=0#Reset the number of lines for each channel
-                channelsentiments[channel] = initializeintentcounter(unique_intent)#Reset channel intent
-            starttime = time.time()#Reset the start time
-
+                dateandtime = str(time.asctime())
+                latestchannelsentiment = max(channelsentiments[channel].items(), key=operator.itemgetter(1))[0]
+                numlines = channelnumlines[channel]
+                payload = {
+                    "room_id": channel,
+                    "data": (dateandtime, numlines, latestchannelsentiment)
+                }
+                payload_str = json.dumps(payload)
+                print(payload_str)
+                payload_byt = payload_str.encode()
+                prefix = "sentiment/room-%s/" % payload["room_id"]
+                key = prefix + dateandtime + ".json"
+                s3.put_object(Bucket=bucket, Key=key, Body=payload_byt)
