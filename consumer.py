@@ -162,28 +162,19 @@ if __name__ == '__main__':
             #clear_output()
             #[channelnumlines, channelsentiments] = animatedplot(channelnumlines, channelxs, channelys, channelsentiments)#Plot the number of messages for each channel
             for channel in channelnumlines:
-            [date,timeofday,channel,text] = processline(line)
-            if channel not in channelnumlines:
-                #If channel wasn't previously tracked, start tracking
-                [channelnumlines, channelys, channelxs] = initializenumlines(channel, channelnumlines, channelys, channelxs)
-                channelsentiments[channel] = initializeintentcounter(unique_intent)
-            channelsentiments[channel] = getmessagesentiment(channelsentiments[channel], word_tokenizer, text, model, max_length, unique_intent)#Increment a sentiment
-            channelnumlines[channel] += 1#Increment the number of messages in that channel
-                #Every interval, perform analysis
-                if time.time() - starttime >= logtimeinterval:
-                    dateandtime = str(time.asctime())
-                    latestchannelsentiment = max(channelsentiments[channel].items(), key=operator.itemgetter(1))[0]
-                    numlines = channelnumlines[channel]
-                    payload = {
-                        "room_id": channel,
-                        "data": (dateandtime, numlines, latestchannelsentiment)
-                    }
-                    payload_str = json.dumps(payload)
-                    print(payload_str)
-                    payload_byt = payload_str.encode()
-                    prefix = "sentiment/room-%s/" % payload["room_id"]
-                    key = prefix + dateandtime + ".json"
-                    s3.put_object(Bucket=bucket, Key=key, Body=payload_byt)
-                    channelnumlines[channel]=0#Reset the number of lines for each channel
-                    channelsentiments[channel] = initializeintentcounter(unique_intent)#Reset channel intent
-                starttime = time.time()#Reset the start time
+                dateandtime = str(time.asctime())
+                latestchannelsentiment = max(channelsentiments[channel].items(), key=operator.itemgetter(1))[0]
+                numlines = channelnumlines[channel]
+                payload = {
+                    "room_id": channel,
+                    "data": (dateandtime, numlines, latestchannelsentiment)
+                }
+                payload_str = json.dumps(payload)
+                print(payload_str)
+                payload_byt = payload_str.encode()
+                prefix = "sentiment/room-%s/" % payload["room_id"]
+                key = prefix + dateandtime + ".json"
+                s3.put_object(Bucket=bucket, Key=key, Body=payload_byt)
+                channelnumlines[channel]=0#Reset the number of lines for each channel
+                channelsentiments[channel] = initializeintentcounter(unique_intent)#Reset channel intent
+            starttime = time.time()#Reset the start time
