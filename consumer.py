@@ -18,6 +18,10 @@ from kafka import KafkaConsumer
 import boto3
 import json
 
+#Amazon S3 bucket information
+bucket = "lawrence-lai-insijght-tmp"
+s3 = boto3.client('s3')
+
 #Import my functions from the sentiment analysis
 import IntentClassification.Intent_Classification_Lai
 from IntentClassification.Intent_Classification_Lai import predictions
