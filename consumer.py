@@ -161,6 +161,8 @@ if __name__ == '__main__':
                 print(channel)
                 print(channelnumlines[channel])
                 print(channelsentiments[channel])
+                print(" ")
+                print(" ")
                 channelnumlines[channel]=0#Reset the number of lines for each channel
                 channelsentiments[channel] = initializeintentcounter(unique_intent)#Reset channel intent
             starttime = time.time()#Reset the start time
