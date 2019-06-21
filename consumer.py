@@ -3,6 +3,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 from matplotlib import style
+import datetime
 import time
 from time import gmtime, strftime
 import io
@@ -142,7 +143,6 @@ if __name__ == '__main__':
     #begin logging chats
     for message in consumer:
         line = message.value
-        print(line)
         [date,timeofday,channel,text] = processline(line.decode())
         if channel not in channelnumlines:
             #If channel wasn't previously tracked, start tracking
@@ -152,15 +152,16 @@ if __name__ == '__main__':
         channelnumlines[channel] += 1#Increment the number of messages in that channel
 
         #Every interval, perform analysis
-        print("now", time.time())
-        print("start", starttime)
         if time.time() - starttime >= logtimeinterval:
             print("in loop")
             #clear_output()
             #[channelnumlines, channelsentiments] = animatedplot(channelnumlines, channelxs, channelys, channelsentiments)#Plot the number of messages for each channel
-            print(channelsentiments)
-            print(channelnumlines)
             for channel in channelnumlines:
+                print(datetime.datetime.now())
+                print(channel)
+                print(channelnumlines[channel])
+                print(channelsentiments[channel])
                 channelnumlines[channel]=0#Reset the number of lines for each channel
                 channelsentiments[channel] = initializeintentcounter(unique_intent)#Reset channel intent
             starttime = time.time()#Reset the start time
+
