@@ -43,7 +43,7 @@ function writemessageKafka(target, msg) {
   // Kafka Producer
   // This call returns a new writable stream to our topic 'topic-name'
   var stream = Kafka.Producer.createWriteStream({
-    'metadata.broker.list': 'ec2-3-81-154-244.compute-1.amazonaws.com, ec2-54-227-1-239.compute-1.amazonaws.com'
+    'metadata.broker.list': 'ec2-3-209-146-134.compute-1.amazonaws.com, ec2-18-205-11-135.compute-1.amazonaws.com, ec2-3-209-201-239.compute-1.amazonaws.com'
   }, {}, {
     topic: target
   });
