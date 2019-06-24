@@ -100,7 +100,7 @@ if __name__ == '__main__':
             [date,timeofday,channel,text] = processline(line.decode())#Process contents of the message
             if channel not in channelnumlines:
                 #If channel wasn't previously tracked, start tracking
-                [channelnumlines, channelys, channelxs] = initializenumlines(channel, channelnumlines, channelys, channelxs)
+                channelnumlines[channel] = 0
                 channelsentiments[channel] = initializeintentcounter(unique_intent)
             channelsentiments[channel] = getmessagesentiment(channelsentiments[channel], word_tokenizer, text, model, max_length, unique_intent)#Increment a sentiment
             channelnumlines[channel] += 1#Increment the number of messages in that channel
