@@ -1,8 +1,4 @@
-#import pandas as pd
-import numpy as np
-import matplotlib.pyplot as plt
-import matplotlib.animation as animation
-from matplotlib import style
+#Import Dependencies
 import datetime
 import time
 from time import gmtime, strftime
@@ -13,15 +9,16 @@ from IPython.display import clear_output
 from keras.models import model_from_json
 import pickle
 import operator
-import kafka
 from kafka import KafkaConsumer
 import psycopg2
-import json
 import tensorflow as tf
-tf.logging.set_verbosity(tf.logging.FATAL)
+#Import my functions from the sentiment analysis
+import IntentClassification.Intent_Classification_Lai
+from IntentClassification.Intent_Classification_Lai import predictions
+from IntentClassification.Intent_Classification_Lai import get_final_output
 
-#Postgres Information
 
+#Establish Connection to PostGres Postgres Information
 with open ('PostgresPass.txt', 'r') as file:
     passwordstring = file.readline().split("\n")[0]
 try:
@@ -38,77 +35,12 @@ except Exception as e:
     print("Can't connect. Invalid dbname, user or password?")
     print(e)
 
-#Import my functions from the sentiment analysis
-import IntentClassification.Intent_Classification_Lai
-from IntentClassification.Intent_Classification_Lai import predictions
-from IntentClassification.Intent_Classification_Lai import get_final_output
-
-def followlog(chatlog):
-    chatlog.seek(0,2)
-    sleeptime = 0.1
-    while True:
-        line = chatlog.readline()
-        if not line:
-            time.sleep(sleeptime)
-            continue
-        yield line
-
+#Define Functions
 def processline(line):
     [date, channel, text] = line.split(",",2)
     [date, timeofday] = date.split("_",1)
     text = text.split("\r",1)[0]
     return [date, timeofday, channel, text]
-
-def wordcountline(dictionary,text):
-    words = re.split('\s|; |, |\*|\n|\. |\.|\r|(\?)',text)
-    bannedwords = {'':True, None:True}
-    words = list(set(words))
-    for word in words:
-        if word in bannedwords: pass
-        elif word in dictionary:
-            dictionary[word] += 1
-        else:
-            dictionary[word] = 1
-    return dictionary
-
-def animatedplot(channelnumlines, channelxs, channelys, channelsentiments):
-    #organizes the plotting for many channels
-    channelnumber = 0
-    for channel in channelnumlines:
-        # Add x and y to lists
-        channelxs[channel].append(strftime("%H:%M:%S", gmtime()))#The year month date, optional,can be called here %Y-%m-%d
-        channelys[channel].append(channelnumlines[channel])
-        # Limit x and y lists to 10 items
-        channelxs[channel] = channelxs[channel][-10:]
-        channelys[channel] = channelys[channel][-10:]
-        latestchannelsentiment = max(channelsentiments[channel].items(), key=operator.itemgetter(1))[0]
-        channelnumber +=1
-        singleplot(channel, channelxs, channelys, latestchannelsentiment, channelnumber)#Plot the number of messages for each channel
-        channelnumlines[channel]=0#Reset the number of lines for each channel
-        channelsentiments[channel] = initializeintentcounter(unique_intent)#Reset channel intent
-    return [channelnumlines, channelsentiments]
-
-def singleplot(channel, channelxs, channelys, latestchannelsentiment, channelnumber):
-    #Plots for a single channel
-    # Draw x and y lists
-    plt.cla()
-    numchannels = len(channelnumlines)
-    plt.subplot(numchannels, 1,  channelnumber)
-    plt.plot(channelxs[channel], channelys[channel], marker='x')
-    # Format plot
-    plt.xticks(rotation=45, ha='right')
-    plt.subplots_adjust(bottom=0.30)
-    plt.title('Number of messages for #%s; channel sentiment: %s' % (channel, latestchannelsentiment))
-    plt.ylabel('Number of messages')
-    plt.xlabel('Time')
-    plt.draw()
-    plt.pause(0.1)
-
-def initializenumlines(channel, channelnumlines, channelys, channelxs):
-    channelnumlines[channel]=0
-    channelys[channel]=[]
-    channelxs[channel]=[]
-    return [channelnumlines, channelys, channelxs]
 
 def initializeintentcounter(unique_intent):
     intentdictionary = {}
@@ -145,12 +77,11 @@ if __name__ == '__main__':
     logtimeinterval = 5
     #For counting messages
     channelnumlines = {}
-    channelxs = {}
-    channelys = {}
     #For intent classification
     channelsentiments = {}
     unique_intent = ['question', 'disappointment', 'funny', 'neutral']
 
+    #Setup Kafka Consumer
     topics = []
     with open ('channellist.txt','r') as source:
         for line in source:
@@ -162,34 +93,38 @@ if __name__ == '__main__':
          enable_auto_commit=True,
          group_id='my-group')
 
-    #begin logging chats
-    for message in consumer:
-        line = message.value
-        [date,timeofday,channel,text] = processline(line.decode())
-        if channel not in channelnumlines:
-            #If channel wasn't previously tracked, start tracking
-            [channelnumlines, channelys, channelxs] = initializenumlines(channel, channelnumlines, channelys, channelxs)
-            channelsentiments[channel] = initializeintentcounter(unique_intent)
-        channelsentiments[channel] = getmessagesentiment(channelsentiments[channel], word_tokenizer, text, model, max_length, unique_intent)#Increment a sentiment
-        channelnumlines[channel] += 1#Increment the number of messages in that channel
+        #begin logging chats
+    try:
+        for message in consumer:
+            line = message.value#Takes message from consumer object
+            [date,timeofday,channel,text] = processline(line.decode())#Process contents of the message
+            if channel not in channelnumlines:
+                #If channel wasn't previously tracked, start tracking
+                channelnumlines[channel] = 0
+                channelsentiments[channel] = initializeintentcounter(unique_intent)
+            channelsentiments[channel] = getmessagesentiment(channelsentiments[channel], word_tokenizer, text, model, max_length, unique_intent)#Increment a sentiment
+            channelnumlines[channel] += 1#Increment the number of messages in that channel
 
-        #Every interval, perform analysis
-        if time.time() - starttime >= logtimeinterval:
-            #clear_output()
-            #[channelnumlines, channelsentiments] = animatedplot(channelnumlines, channelxs, channelys, channelsentiments)#Plot the number of messages for each channel
-            for channel in channelnumlines:
-                dateandtime = str(time.asctime())
-                latestchannelsentiment = max(channelsentiments[channel].items(), key=operator.itemgetter(1))[0]
-                numlines = channelnumlines[channel]
-                nquestion = channelsentiments[channel]['question']
-                ndisappointment = channelsentiments[channel]['disappointment']
-                nfunny = channelsentiments[channel]['funny']
-                nneutral = channelsentiments[channel]['neutral']
-                sql = """INSERT INTO ChatAnalytics (channelname, date, time, nummessages, question, disappointment, funny, neutral)
-                VALUES(%s, CURRENT_DATE, CURRENT_TIME, %s, %s, %s, %s, %s);"""
-                cur.execute(sql, (channel, numlines, nquestion, ndisappointment, nfunny, nneutral))
-                conn.commit()
-                print("Data point committed at ", datetime.datetime.now())
-                channelnumlines[channel]=0#Reset the number of lines for each channel
-                channelsentiments[channel] = initializeintentcounter(unique_intent)#Reset channel intent
-            starttime = time.time()#Reset the start time
+            #Every interval, perform analysis
+            if time.time() - starttime >= logtimeinterval:
+                #clear_output()
+                #[channelnumlines, channelsentiments] = animatedplot(channelnumlines, channelxs, channelys, channelsentiments)#Plot the number of messages for each channel
+                for channel in channelnumlines:
+                    dateandtime = str(time.asctime())
+                    latestchannelsentiment = max(channelsentiments[channel].items(), key=operator.itemgetter(1))[0]
+                    numlines = channelnumlines[channel]
+                    nquestion = channelsentiments[channel]['question']
+                    ndisappointment = channelsentiments[channel]['disappointment']
+                    nfunny = channelsentiments[channel]['funny']
+                    nneutral = channelsentiments[channel]['neutral']
+                    sql = """INSERT INTO ChatAnalytics (channelname, date, time, nummessages, question, disappointment, funny, neutral)
+                    VALUES(%s, CURRENT_DATE, CURRENT_TIME, %s, %s, %s, %s, %s);"""
+                    cur.execute(sql, (channel, numlines, nquestion, ndisappointment, nfunny, nneutral))
+                    conn.commit()
+                    print("Data point committed at ", datetime.datetime.now())
+                    channelnumlines[channel]=0#Reset the number of lines for each channel
+                    channelsentiments[channel] = initializeintentcounter(unique_intent)#Reset channel intent
+                starttime = time.time()#Reset the start time
+    except KeyboardInterrupt:#Let user stop logging when keyboard command is sent
+        pass
+    conn.close()#Close connection after everything is done
