@@ -15,12 +15,28 @@ import pickle
 import operator
 import kafka
 from kafka import KafkaConsumer
-import boto3
+import psycopg2
 import json
+import tensorflow as tf
+tf.logging.set_verbosity(tf.logging.FATAL)
 
-#Amazon S3 bucket information
-bucket = "lawrence-lai-insijght-tmp"
-s3 = boto3.client('s3')
+#Postgres Information
+
+with open ('PostgresPass.txt', 'r') as file:
+    passwordstring = file.readline().split("\n")[0]
+try:
+    conn = psycopg2.connect(user = "laitcl",
+                                 password = passwordstring,
+                                 host = "10.0.0.12",
+                                 port = "5432",
+                                 database = "testpython")
+    # create a psycopg2 cursor that can execute queries
+    cur = conn.cursor()
+    # create a new table with a single column called "name"
+    print('Connection to PostgreSQL successful')
+except Exception as e:
+    print("Can't connect. Invalid dbname, user or password?")
+    print(e)
 
 #Import my functions from the sentiment analysis
 import IntentClassification.Intent_Classification_Lai
@@ -165,16 +181,15 @@ if __name__ == '__main__':
                 dateandtime = str(time.asctime())
                 latestchannelsentiment = max(channelsentiments[channel].items(), key=operator.itemgetter(1))[0]
                 numlines = channelnumlines[channel]
-                payload = {
-                    "room_id": channel,
-                    "data": (dateandtime, numlines, latestchannelsentiment)
-                }
-                payload_str = json.dumps(payload)
-                print(payload_str)
-                payload_byt = payload_str.encode()
-                prefix = "sentiment/room-%s/" % payload["room_id"]
-                key = prefix + dateandtime + ".json"
-                s3.put_object(Bucket=bucket, Key=key, Body=payload_byt)
+                nquestion = channelsentiments[channel]['question']
+                ndisappointment = channelsentiments[channel]['disappointment']
+                nfunny = channelsentiments[channel]['funny']
+                nneutral = channelsentiments[channel]['neutral']
+                sql = """INSERT INTO ChatAnalytics (channelname, date, time, nummessages, question, disappointment, funny, neutral)
+                VALUES(%s, CURRENT_DATE, CURRENT_TIME, %s, %s, %s, %s, %s);"""
+                cur.execute(sql, (channel, numlines, nquestion, ndisappointment, nfunny, nneutral))
+                conn.commit()
+                print("Data point committed at ", datetime.datetime.now())
                 channelnumlines[channel]=0#Reset the number of lines for each channel
                 channelsentiments[channel] = initializeintentcounter(unique_intent)#Reset channel intent
             starttime = time.time()#Reset the start time
