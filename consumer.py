@@ -6,7 +6,6 @@ import re
 import operator
 import time
 from time import gmtime, strftime
-from IPython.display import clear_output
 from keras.models import model_from_json
 import pickle
 from kafka import KafkaConsumer
@@ -83,10 +82,10 @@ def databaseupdate(channelnumlines, channelsentiments, channel, unique_intent):
     sql,
     (channel,
     numlines,
-    latestsentiment['question'],
-    latestsentiment['disappointment'],
-    latestsentiment['funny'],
-     latestsentiment['neutral']))
+    lastsentiment['question'],
+    lastsentiment['disappointment'],
+    lastsentiment['funny'],
+    lastsentiment['neutral']))
     conn.commit()
     print("Data point committed at ", datetime.datetime.now())
     channelnumlines[channel] = 0  # Reset the number of lines for each channel
@@ -118,11 +117,10 @@ with open('channellist.txt', 'r') as source:
         topics.append(line.split('\n')[0])
 consumer = KafkaConsumer(
     *topics,
-     bootstrap_servers=['ec2-3-209-146-134.compute-1.amazonaws.com:9092', 'ec2-18-205-11-135.compute-1.amazonaws.com:9092', 'ec2 - 3 - 209 - 201 -$
+     bootstrap_servers=['ec2-3-209-146-134.compute-1.amazonaws.com:9092', 'ec2-18-205-11-135.compute-1.amazonaws.com:9092'],
      auto_offset_reset='earliest',
      enable_auto_commit=True,
      group_id='my-group')
-
 
 if __name__ == '__main__':
     # Setup tracking variables
@@ -135,21 +133,6 @@ if __name__ == '__main__':
     # For intent classification
     channelsentiments= {}
     unique_intent= ['question', 'disappointment', 'funny', 'neutral']
-
-    # Setup Kafka Consumer
-    topics= []
-    with open('channellist.txt', 'r') as source:
-        for line in source:
-            topics.append(line.split('\n')[0])
-    consumer= KafkaConsumer(
-        *topics,
-         bootstrap_servers=[
-    'ec2-3-209-146-134.compute-1.amazonaws.com:9092',
-    'ec2-18-205-11-135.compute-1.amazonaws.com:9092',
-     'ec2-3-209-201-239.compute-1.amazonaws.com:9092'],
-         auto_offset_reset='earliest',
-         enable_auto_commit=True,
-         group_id='my-group')
 
     # begin logging chats
     try:
@@ -167,8 +150,7 @@ if __name__ == '__main__':
             if time.time() - starttime >= logtimeinterval:
                 # clear_output()
                 for channel in channelnumlines:
-                    [channelnumlines, channelsentiments]= databaseupdate(channelnumlines, channelsentiments, channel, unique_intent):
+                    [channelnumlines, channelsentiments]= databaseupdate(channelnumlines, channelsentiments, channel, unique_intent)
                 starttime = time.time()  # Reset the start time
     except KeyboardInterrupt:  # Let user stop logging when keyboard command is sent
-        break
-    conn.close()  # Close connection after everything is done
+        conn.close()  # Close connection after everything is done
