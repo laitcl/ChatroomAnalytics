@@ -1,0 +1,50 @@
+<!-- ./templates/index.html -->
+<!DOCTYPE html>
+<html>
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Real Time Chat Analytics</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bulma/0.7.1/css/bulma.min.css">
+    <style>
+        .chart {
+            height: 400px;
+        }
+    </style>
+</head>
+<body>
+<section class="section">
+    <h5 class="title is-6">#Messages per Interval</h5>
+    <div id="chatplot" class="chart">
+      <form method="POST">
+        <input name="channel">
+        <input type="submit">
+      </form>
+    </div>
+</section>
+
+
+
+    <!-- D3.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/3.5.6/d3.min.js"></script>
+    <!-- jQuery -->
+    <script src="https://code.jquery.com/jquery-2.1.4.min.js"></script>
+    <!-- Plotly.js -->
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <!-- import Pusher-js library -->
+    <script src="https://js.pusher.com/4.1/pusher.min.js"></script>
+    <script type="text/javascript">
+      // connect to Pusher
+      const pusher = new Pusher('114fb576b66e1ffc4165', {
+        cluster: 'mt1', // gotten from Pusher app dashboard
+        encrypted: true // optional
+      });
+      // subscribe to crypto channel
+      const channel = pusher.subscribe('ChatAnalytics')
+      // listen for relevant events
+      channel.bind('data-updated', data => {
+          const graph = JSON.parse(data.graph);
+          Plotly.newPlot('chatplot', graph);
+      });
+    </script>
+</body>
+</html>
