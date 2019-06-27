@@ -123,7 +123,6 @@ consumer = KafkaConsumer(
      enable_auto_commit=True,
      group_id='my-group')
 
-
 if __name__ == '__main__':
     # Setup tracking variables
     # For capturing data at set time intervalsmodel
@@ -135,21 +134,6 @@ if __name__ == '__main__':
     # For intent classification
     channelsentiments= {}
     unique_intent= ['question', 'disappointment', 'funny', 'neutral']
-
-    # Setup Kafka Consumer
-    topics= []
-    with open('channellist.txt', 'r') as source:
-        for line in source:
-            topics.append(line.split('\n')[0])
-    consumer= KafkaConsumer(
-        *topics,
-         bootstrap_servers=[
-    'ec2-3-209-146-134.compute-1.amazonaws.com:9092',
-    'ec2-18-205-11-135.compute-1.amazonaws.com:9092',
-     'ec2-3-209-201-239.compute-1.amazonaws.com:9092'],
-         auto_offset_reset='earliest',
-         enable_auto_commit=True,
-         group_id='my-group')
 
     # begin logging chats
     try:
