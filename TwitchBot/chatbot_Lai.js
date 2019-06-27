@@ -22,7 +22,6 @@ client.connect();
 // Called every time a message comes in
 function onMessageHandler (target, context, msg, self) {
   if (self) { return; } // Ignore messages from the bot
-  //console.log(`* Target ${target} Context ${context} message ${msg} self${self}`);
   writemessageKafka(target, msg)
 }
 
@@ -70,10 +69,6 @@ function writemessageCSV(target, msg) {
 //  Output to CSV components
   datestring = fulldate()
   outputmessage = datestring +target+','+ msg+ '\r\n'
-//  fs.appendFile(writepath, outputmessage, (err) => {
-//    // In case of a error throw err.
-//    if (err) throw err;
-//})
 }
 
 //Get date
