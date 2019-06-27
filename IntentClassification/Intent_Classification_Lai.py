@@ -1,9 +1,6 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# In[11]:
-
-
 # Import the dependencies
 import numpy as np
 import pandas as pd
@@ -25,11 +22,6 @@ from keras.layers import Dense, LSTM, Bidirectional, Embedding, Dropout
 from keras.callbacks import ModelCheckpoint
 from keras.models import model_from_json
 import pickle
-print("Imported dependencies.")
-
-
-# In[32]:
-
 
 #Define functions (also for importing)
 def readdata(filename):
@@ -66,7 +58,6 @@ def create_model(vocab_size, max_length):
     model = Sequential()
     model.add(Embedding(vocab_size, 128, input_length = max_length, trainable = False))
     model.add(Bidirectional(LSTM(128)))
-    #model.add(LSTM(128))
     model.add(Dense(32, activation = "relu"))
     model.add(Dropout(0.5))
     model.add(Dense(intentsize, activation = "softmax"))
@@ -98,10 +89,6 @@ def get_final_output(pred, classes, mode):
     elif mode == 'classify':
         return classes[0]
 
-
-# In[3]:
-
-
 if __name__ == "__main__":
     #Extract Dataset
     filename = 'datasets/Preliminary_Dataset.csv'
@@ -109,10 +96,6 @@ if __name__ == "__main__":
     messages = trainingdata['message']
     intent = trainingdata['Intent']
     unique_intent = list(set(intent))
-
-
-    # In[33]:
-
 
     #Process x values
     #Cleaning messages, removing numbers and
@@ -139,10 +122,6 @@ if __name__ == "__main__":
     padded_doc = pad_sequences(encoded_doc, maxlen = max_length, padding = "post")
     #print(padded_doc)
 
-
-    # In[19]:
-
-
     #Process Outputs
     #Tokenize intentions
     output_tokenizer=create_tokenizer(unique_intent,filters = '!"#$%&()*+,-/:;<=>?@[\]^`{|}~')
@@ -159,24 +138,12 @@ if __name__ == "__main__":
     output_one_hot = one_hot(encoded_output)
 
     x_train, x_test, y_train, y_test = train_test_split(padded_doc, output_one_hot, shuffle = True, test_size=0.2, random_state=1000)
-    #print("Shape of x_train = %s and y_train = %s" % (x_train.shape, y_train.shape))
-    #print("Shape of x_test = %s and y_test = %s" % (x_test.shape, y_test.shape))
-
-    print("Created test and training data.")
-
-
-    # In[6]:
-
 
     #Model Creation
     model = create_model(vocab_size, max_length)
 
     model.compile(loss = "categorical_crossentropy", optimizer = "adam", metrics = ["accuracy"])
     model.summary()
-
-
-    # In[7]:
-
 
     # Fit the model to the training data
     filename = 'model_weights.h5'
@@ -189,33 +156,6 @@ if __name__ == "__main__":
     with open('model_architecture.json', 'w') as f:
         f.write(model.to_json())
 
-
-    # In[34]:
-
-
     # Load our proudly trained model
     with open('model_architecture.json', 'r') as f1:
         model = model_from_json(f1.read())
-
-    # Load weights into the new model
-    model.load_weights('model_weights.h5')
-
-
-    # In[35]:
-
-
-    #Example text
-    text = "f"
-    #Prediction
-    pred = predictions(word_tokenizer, text, model, max_length)
-    get_final_output(pred, unique_intent, 'classify')
-
-
-    # In[25]:
-
-
-    #Export this notebook as a script
-    #!jupyter nbconvert --to script Intent_Classification_Lai.ipynb
-
-
-    # In[ ]:
