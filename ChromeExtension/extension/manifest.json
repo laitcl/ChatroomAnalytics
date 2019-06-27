@@ -1,0 +1,33 @@
+  {
+    "name": "Twitch Chat Analytics",
+    "version": "1.0",
+    "description": "Real time analysis of Twitch TV Chat",
+    "permissions": ["activeTab",
+      "declarativeContent",
+      "storage",
+      "*://*.twitch.tv/",
+	  "tabs"
+    ],
+
+    "background": {
+      "scripts": ["js/background.js"],
+      "persistent": false
+    },
+
+    "page_action": {
+      "default_popup": "popup.html",
+      "default_icon": {"128": "images/icon.png"},
+	  "default_title": "Start Chat Analytics"
+    },
+
+    "content_scripts": [{
+      "matches": ["*://www.twitch.tv/*"],
+      "js": ["js/content.js"]
+    }],
+
+    "icons": {
+      "128": "images/icon.png"
+    },
+
+    "manifest_version": 2
+  }
