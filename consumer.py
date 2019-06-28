@@ -82,10 +82,10 @@ def databaseupdate(channelnumlines, channelsentiments, channel, unique_intent):
     sql,
     (channel,
     numlines,
-    latestsentiment['question'],
-    latestsentiment['disappointment'],
-    latestsentiment['funny'],
-     latestsentiment['neutral']))
+    lastsentiment['question'],
+    lastsentiment['disappointment'],
+    lastsentiment['funny'],
+    lastsentiment['neutral']))
     conn.commit()
     print("Data point committed at ", datetime.datetime.now())
     channelnumlines[channel] = 0  # Reset the number of lines for each channel
