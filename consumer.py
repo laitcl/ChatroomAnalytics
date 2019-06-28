@@ -118,7 +118,7 @@ with open('channellist.txt', 'r') as source:
         topics.append(line.split('\n')[0])
 consumer = KafkaConsumer(
     *topics,
-     bootstrap_servers=['ec2-3-209-146-134.compute-1.amazonaws.com:9092', 'ec2-18-205-11-135.compute-1.amazonaws.com:9092', 'ec2 - 3 - 209 - 201 -$
+     bootstrap_servers=['ec2-3-209-146-134.compute-1.amazonaws.com:9092', 'ec2-18-205-11-135.compute-1.amazonaws.com:9092'],
      auto_offset_reset='earliest',
      enable_auto_commit=True,
      group_id='my-group')
