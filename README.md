@@ -7,7 +7,7 @@ The tool CHAT ingests Twitch TV messages and outputs message count and channel o
 ## Getting Started
 
 To gain a copy of this project and test this project:
-`git clone https://github.com/laitcl/ChatroomAnalytics.git` to gain a copy of this code
+`git clone https://github.com/laitcl/ChatroomAnalytics.git`
 
 Fill in the credential documents with your own accounts. They are located in the following in the following
 ```
@@ -18,6 +18,7 @@ ChromeExtension/Flask/pusherinfo.txt
 ```
 
 Point towards the correct servers of Kafka-Brokers
+
 In consumer.py
 ```
 consumer = KafkaConsumer(
@@ -38,6 +39,7 @@ In TwitchBot/chatbot_Lai.js
 ```
 
 Point towards the correct PostGres Database:
+
 In consumer.py
 ```
 conn = psycopg2.connect(user="laitcl",
@@ -59,7 +61,8 @@ try:
                                  database = "testpython")
 ```
 
-And connect to your pusher account
+Point towards your own pusher account:
+
 In ChromeExtension/Flask/App.py
 ```
 with open ('pusherinfo.txt', 'r') as file:
@@ -81,10 +84,15 @@ These instructions will get you a copy of the project up and running on your loc
 This code uses different computational clusters to acquire, send, and analyze messages. The following servers must be installed
 
 Kafka brokers: Install Zookeeper and Kafka on 2 or more Kafka brokers to allocate acquired messages for analysis
+
 Kafka producers: Install Zookeeper and NodeJS on at least 3 Twitch bot clusters to acquire Twitch TV messages. Must also own a Twitch.TV account.
+
 Kafka consumers: Install Zookeeper, Kafka, and python on 1 or more Kafka consumers to analyze messages and output to PostgreSQL.
-PostgreSQL Server: Install PostgreSQL on 1 server to receive message analysis from Kafka consumer
+
+PostgreSQL Server: Install PostgreSQL on 1 server to receive message analysis from Kafka consumer.
+
 UI Server: Install Python on 1 host server (can be same server as PostgreSQL) to be able to use Flask to host website for chrome extension.
+
 
 Documentation for installing Kafka can be found [here](https://github.com/InsightDataScience/data-engineering-ecosystem/wiki/Kafka). Installation for Zookeeper can be found [here](https://github.com/InsightDataScience/data-engineering-ecosystem/wiki/zookeeper).
 
@@ -139,7 +147,7 @@ To run this tool:
 
 ## Authors
 
-* **Lawrence Lai** - *Initial work* - [PurpleBooth](https://github.com/laitcl/)
+* **Lawrence Lai** - [GitHub: laitcl](https://github.com/laitcl/)
 
 ## Acknowledgments
 
