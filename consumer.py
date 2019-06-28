@@ -6,7 +6,6 @@ import re
 import operator
 import time
 from time import gmtime, strftime
-from IPython.display import clear_output
 from keras.models import model_from_json
 import pickle
 from kafka import KafkaConsumer
@@ -151,8 +150,7 @@ if __name__ == '__main__':
             if time.time() - starttime >= logtimeinterval:
                 # clear_output()
                 for channel in channelnumlines:
-                    [channelnumlines, channelsentiments]= databaseupdate(channelnumlines, channelsentiments, channel, unique_intent):
+                    [channelnumlines, channelsentiments]= databaseupdate(channelnumlines, channelsentiments, channel, unique_intent)
                 starttime = time.time()  # Reset the start time
     except KeyboardInterrupt:  # Let user stop logging when keyboard command is sent
-        break
-    conn.close()  # Close connection after everything is done
+        conn.close()  # Close connection after everything is done
