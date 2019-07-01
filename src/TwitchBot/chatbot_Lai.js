@@ -1,6 +1,13 @@
 const tmi = require('tmi.js');
 var credentials = require('./credentials');
 var Kafka = require('node-rdkafka');
+// Kafka Producer: This call returns a new writable stream to our topic 'twitchmessages'
+var stream = Kafka.Producer.createWriteStream({
+  'metadata.broker.list': 'ec2-3-209-146-134.compute-1.amazonaws.com, ec2-18-205-11-135.compute-1.amazonaws.com, ec2-3-209-201-239.compute-1.amazonaws.com'
+}, {}, {
+  topic: 'twitchmessages'
+});
+
 
 // Setup Writefile
 const fs = require('fs');
@@ -33,13 +40,6 @@ function writemessageKafka(target, msg) {
   console.log(target)
   outputmessage = datestring +target+','+ msg+ '\r\n'
   // Outputs to Kafka and check status of output
-  // Kafka Producer: This call returns a new writable stream to our topic 'topic-name'
-  var stream = Kafka.Producer.createWriteStream({
-    'metadata.broker.list': 'ec2-3-209-146-134.compute-1.amazonaws.com, ec2-18-205-11-135.compute-1.amazonaws.com, ec2-3-209-201-239.compute-1.amazonaws.com'
-  }, {}, {
-    topic: target
-  });
-
   var queuedSuccess = stream.write(Buffer.from(outputmessage));
     if (queuedSuccess) {
       console.log('Message queued on ' + datestring);

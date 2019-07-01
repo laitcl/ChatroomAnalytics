@@ -62,10 +62,7 @@ with open(os.path.join(__location__,'../../tools/IntentClassification/maxlen.txt
 
 # Setup Kafka Consumer
 
-topics = []
-with open(os.path.join(__location__,'channellist.txt'), 'r') as source:
-    for line in source:
-        topics.append(line.split('\n')[0])
+topics = ['twitchmessages'])
 consumer = KafkaConsumer(
     *topics,
      bootstrap_servers=['ec2-3-209-146-134.compute-1.amazonaws.com:9092', 'ec2-18-205-11-135.compute-1.amazonaws.com:9092'],
@@ -140,4 +137,3 @@ if __name__ == '__main__':
                 channels.starttime = time.time()  # Reset the start time
     except KeyboardInterrupt:  # Let user stop logging when keyboard command is sent
         conn.close()  # Close connection after everything is done
-
