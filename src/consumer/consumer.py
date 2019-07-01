@@ -62,7 +62,7 @@ with open(os.path.join(__location__,'../../tools/IntentClassification/maxlen.txt
 
 # Setup Kafka Consumer
 
-topics = ['twitchmessages'])
+topics = ['twitchmessages']
 consumer = KafkaConsumer(
     *topics,
      bootstrap_servers=['ec2-3-209-146-134.compute-1.amazonaws.com:9092', 'ec2-18-205-11-135.compute-1.amazonaws.com:9092'],

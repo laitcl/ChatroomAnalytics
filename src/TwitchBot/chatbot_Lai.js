@@ -37,12 +37,11 @@ function writemessageKafka(target, msg) {
   // Process the output message into a format we like
   datestring = fulldate()
   target = target.substr(1);
-  console.log(target)
   outputmessage = datestring +target+','+ msg+ '\r\n'
   // Outputs to Kafka and check status of output
   var queuedSuccess = stream.write(Buffer.from(outputmessage));
     if (queuedSuccess) {
-      console.log('Message queued on ' + datestring);
+      console.log('Message queued on ' + datestring + ' at ' + target);
     } else {
       // Note that this only tells us if the stream's queue is full,
       // it does NOT tell us if the message got to Kafka!  See below...
