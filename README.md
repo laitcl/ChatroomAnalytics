@@ -1,8 +1,29 @@
 # Conversation Headline Analytics Tool (CHAT)
 
-<div style="text-align:center; margin: 50px 0"><img src ="ChromeExtension/extension/images/icon.png" height="150"/></div>
+<div style="text-align:center; margin: 50px 0"><img src ="docs/img/icon.png" height="200"/></div>
 
-The tool CHAT ingests Twitch TV messages and outputs message count and channel one of four audience sentiments (Question, Disappointment, Funny, and Neutral) every five seconds for each channel. This information is outputted through a chrome extension for content creators to observe superficial audience behavior.
+
+Many live video broadcasting platforms (such as Twitch.TV, Youtube, etc.) often pairs their video content with chatrooms to allow for audience participation and interaction. This project focuses on Twitch TV, where there are on average [over 1 million viewers](https://twitchtracker.com/statistics/viewers) at any given point in time, and [over 45 thousand live channels](https://twitchtracker.com/statistics/channels) at a time.
+
+
+In popular content (over 50k viewers), messages in stream chats could exceed 50 messages per second (in streams like Twitch Plays Pokemon), and these chatrooms are often heavily moderated by subscribers only chatting, message cooldowns, and other features to alleviate the high chat velocity. In order to enable content creators to appropriately interact with their audience (and audience members to interact with each other) while creating content, this tool ingests Twitch TV messages, saves message count and channel one of four audience sentiments (Question, Disappointment, Funny, and Neutral) every five seconds for each channel to a PostgreSQL database, and this information is outputted through a chrome extension for content creators to observe superficial audience behavior and react accordingly.
+
+
+In addition, this tool performs its task to over 100 channels a time by utilizing distributed technologies Kafka and PostgreSQL, and can be scaled horizontally by adding number of processing nodes.
+
+
+# Architecutre
+
+<div style="text-align:center; margin: 50px 0"><img src ="docs/img/ChatAnalyticsArchitecture.png" height="200"/></div>
+
+This tool uses the following architecture:
+
+1. **NodeJS Chatbot** - This tool uses a NodeJS chatbot installed on multiple nodes to ingest messages from Twitch.TV. The source of this code was taken from [Twitch.tv](https://dev.twitch.tv/docs/irc/), modified to be able to output messages to Kafka. Each Chatbot is measured to be able to produce 500 messages per second to Kafka.
+2. **Kafka** - Kafka is a fault tolerant distributed technology that allows for messages to be produced and consumed by different nodes, utilizing brokers nodes in between with partitioning. Kafka allows the horizontal scalability of this tool; any number of nodes can be added to either the consumer or producer nodes.
+3. **Python Keras** - The consumption (counting) of messages from Kafka is performed using Python, with sentiment analysis powered by Keras. The machine learning algirthm is trained using a [dataset of 1113 sentences](https://github.com/Dark-Sied/Intent_Classification), reclassified by me, with an addition of another >1000 messages recorded from Twitch TV's official channel. The current test accuracy of this model is 87%, but the data source is highly specific, and can be improven in the future. This script can process up to 8000 messages per second.  
+4. **PostgreSQL** - The output of the python script is saved to PostgreSQL so that this information can be retrieved easily. This database has one relation, with the columns (in addition to a serial output ID) of channel name, date, time, number of messages, and number of messages of each of the four sentiments.
+5. **Chrome Extension** - The Google Chrome Extension is written to be activated on Twitch.Tv domains, and will call a Flask powered Webapp that will plot the number of messages with respect to time, and label the sentiments.
+
 
 ## Getting Started
 
