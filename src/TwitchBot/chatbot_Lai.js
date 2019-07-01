@@ -25,22 +25,15 @@ function onMessageHandler (target, context, msg, self) {
   writemessageKafka(target, msg)
 }
 
-// Function called when the "dice" command is issued
-function rollDice () {
-  const sides = 6;
-  return Math.floor(Math.random() * sides) + 1;
-}
-
 // Function called whenever line of text should be outputted
 function writemessageKafka(target, msg) {
+  // Process the output message into a format we like
   datestring = fulldate()
   target = target.substr(1);
   console.log(target)
   outputmessage = datestring +target+','+ msg+ '\r\n'
-  //console.log(outputmessage)
-  //  Outputs to Kafka and check status of output
-  // Kafka Producer
-  // This call returns a new writable stream to our topic 'topic-name'
+  // Outputs to Kafka and check status of output
+  // Kafka Producer: This call returns a new writable stream to our topic 'topic-name'
   var stream = Kafka.Producer.createWriteStream({
     'metadata.broker.list': 'ec2-3-209-146-134.compute-1.amazonaws.com, ec2-18-205-11-135.compute-1.amazonaws.com, ec2-3-209-201-239.compute-1.amazonaws.com'
   }, {}, {
