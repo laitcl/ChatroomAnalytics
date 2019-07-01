@@ -4,6 +4,7 @@ import io
 import threading
 import re
 import operator
+import os
 import time
 from time import gmtime, strftime
 from keras.models import model_from_json
@@ -18,7 +19,8 @@ from Intent_Classification_Lai import get_final_output
 
 
 # Establish Connection to PostGres Postgres Information
-with open('PostgresPass.txt', 'r') as file:
+__location__ = os.path.realpath(os.path.join(os.getcwd(), os.path.dirname(__file__)))
+with open(os.path.join(__location__,'PostgresPass.txt'), 'r') as file:
     passwordstring = file.readline().split("\n")[0]
 try:
     conn = psycopg2.connect(user="laitcl",
@@ -44,23 +46,24 @@ def processline(line):
 
 # Load chat classification model
 # Model reconstruction from JSON file
-with open('../../tools/IntentClassification/model_architecture.json', 'r') as f1:
+with open(os.path.join(__location__,'../../tools/IntentClassification/model_architecture.json'), 'r') as f1:
     model = model_from_json(f1.read())
 
 # Load weights into the new model
-model.load_weights('../../tools/IntentClassification/model_weights.h5')
+model.load_weights(os.path.join(__location__,'../../tools/IntentClassification/model_weights.h5'))
 
 # Load Word Tokenizer
-with open('../../tools/IntentClassification/tokenizer.pickle', 'rb') as handle:
+with open(os.path.join(__location__,'../../tools/IntentClassification/tokenizer.pickle'), 'rb') as handle:
     word_tokenizer = pickle.load(handle)
 
 # Load Max Length of a message
-with open('../../tools/IntentClassification/maxlen.txt', 'r') as f2:
+with open(os.path.join(__location__,'../../tools/IntentClassification/maxlen.txt'), 'r') as f2:
     max_length = int(f2.readline())
 
 # Setup Kafka Consumer
+
 topics = []
-with open('channellist.txt', 'r') as source:
+with open(os.path.join(__location__,'channellist.txt'), 'r') as source:
     for line in source:
         topics.append(line.split('\n')[0])
 consumer = KafkaConsumer(
@@ -80,14 +83,16 @@ class channelanalytics:
         #Logging Time
         self.beginningtime = time.time()
         self.starttime = time.time()
+        self.logtimeinterval = 5
 
     def initializecounter(self, channel):
-        channelnumlines[channel] = 0
+        self.channelnumlines[channel] = 0
+        self.channelsentiments[channel] = {}
         for intent in self.unique_intent:
-            channelsentiments[channel][intent] = 0
+            self.channelsentiments[channel][intent] = 0
 
     def incrementchannel(self, channel, message):
-        channelnumlines[channel] += 1
+        self.channelnumlines[channel] += 1
         sentiment = get_final_output(
         predictions(
             word_tokenizer,
@@ -96,7 +101,7 @@ class channelanalytics:
             max_length),
             self.unique_intent,
              'classify')#Perform an intent classification
-        channelsentiments[channel][sentiment] += 1
+        self.channelsentiments[channel][sentiment] += 1
 
     def databaseupdate(self,channel):
         dateandtime = str(time.asctime())
@@ -128,10 +133,11 @@ if __name__ == '__main__':
             if channel not in channels.channelnumlines:  # If channel wasn't previously tracked, start tracking
                 channels.initializecounter(channel)
             channels.incrementchannel(channel, text)# Increment a sentiment and number of lines
-            if time.time() - channels.starttime >= logtimeinterval:# Every interval, perform analysis
-                for channel in channelnumlines:
-                    [channelnumlines, channelsentiments]= channels.databaseupdate(channel)#Export information to database
+            if time.time() - channels.starttime >= channels.logtimeinterval:# Every interval, perform analysis
+                for channel in channels.channelnumlines:
+                    channels.databaseupdate(channel)#Export information to database
                     channels.initializecounter(channel)#Reinitalize counter for next cycle
                 channels.starttime = time.time()  # Reset the start time
     except KeyboardInterrupt:  # Let user stop logging when keyboard command is sent
         conn.close()  # Close connection after everything is done
+
