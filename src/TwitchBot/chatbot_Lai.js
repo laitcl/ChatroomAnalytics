@@ -1,6 +1,13 @@
 const tmi = require('tmi.js');
 var credentials = require('./credentials');
 var Kafka = require('node-rdkafka');
+// Kafka Producer: This call returns a new writable stream to our topic 'twitchmessages'
+var stream = Kafka.Producer.createWriteStream({
+  'metadata.broker.list': 'ec2-3-209-146-134.compute-1.amazonaws.com, ec2-18-205-11-135.compute-1.amazonaws.com, ec2-3-209-201-239.compute-1.amazonaws.com'
+}, {}, {
+  topic: 'twitchmessages'
+});
+
 
 // Setup Writefile
 const fs = require('fs');
@@ -30,19 +37,11 @@ function writemessageKafka(target, msg) {
   // Process the output message into a format we like
   datestring = fulldate()
   target = target.substr(1);
-  console.log(target)
   outputmessage = datestring +target+','+ msg+ '\r\n'
   // Outputs to Kafka and check status of output
-  // Kafka Producer: This call returns a new writable stream to our topic 'topic-name'
-  var stream = Kafka.Producer.createWriteStream({
-    'metadata.broker.list': 'ec2-3-209-146-134.compute-1.amazonaws.com, ec2-18-205-11-135.compute-1.amazonaws.com, ec2-3-209-201-239.compute-1.amazonaws.com'
-  }, {}, {
-    topic: target
-  });
-
   var queuedSuccess = stream.write(Buffer.from(outputmessage));
     if (queuedSuccess) {
-      console.log('Message queued on ' + datestring);
+      console.log('Message queued on ' + datestring + ' at ' + target);
     } else {
       // Note that this only tells us if the stream's queue is full,
       // it does NOT tell us if the message got to Kafka!  See below...
