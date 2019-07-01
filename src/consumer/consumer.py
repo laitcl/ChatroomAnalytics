@@ -12,9 +12,9 @@ from kafka import KafkaConsumer
 import psycopg2
 import tensorflow as tf
 # Import my functions from the sentiment analysis
-import IntentClassification.Intent_Classification_Lai
-from IntentClassification.Intent_Classification_Lai import predictions
-from IntentClassification.Intent_Classification_Lai import get_final_output
+import Intent_Classification_Lai
+from Intent_Classification_Lai import predictions
+from Intent_Classification_Lai import get_final_output
 
 
 # Establish Connection to PostGres Postgres Information
@@ -35,79 +35,27 @@ except Exception as e:
     print(e)
 
 # Define Functions
-
-
+#Method to process one line of messages
 def processline(line):
     [date, channel, text] = line.split(",", 2)
     [date, timeofday] = date.split("_", 1)
     text = text.split("\r", 1)[0]
     return [date, timeofday, channel, text]
 
-
-def initializeintentcounter(unique_intent):
-    intentdictionary = {}
-    for intent in unique_intent:
-        intentdictionary[intent] = 0
-    return intentdictionary
-
-
-def getmessagesentiment(
-    channelsentiment,
-    word_tokenizer,
-    text,
-    model,
-    max_length,
-     unique_intent):
-    sentiment = get_final_output(
-    predictions(
-        word_tokenizer,
-        text,
-        model,
-        max_length),
-        unique_intent,
-         'classify')
-    channelsentiment[sentiment] += 1  # Perform an intent classification
-    return channelsentiment
-
-
-def databaseupdate(channelnumlines, channelsentiments, channel, unique_intent):
-    dateandtime = str(time.asctime())
-    numlines = channelnumlines[channel]
-    lastsentiment = {}
-    for intent in unique_intent:
-        lastsentiment[intent] = channelsentiments[channel][intent]
-    sql = """INSERT INTO ChatAnalytics (channelname, date, time, nummessages, question, disappointment, funny, neutral)
-    VALUES(%s, CURRENT_DATE, CURRENT_TIME, %s, %s, %s, %s, %s);"""
-    cur.execute(
-    sql,
-    (channel,
-    numlines,
-    lastsentiment['question'],
-    lastsentiment['disappointment'],
-    lastsentiment['funny'],
-    lastsentiment['neutral']))
-    conn.commit()
-    print("Data point committed at ", datetime.datetime.now())
-    channelnumlines[channel] = 0  # Reset the number of lines for each channel
-    channelsentiments[channel] = initializeintentcounter(
-        unique_intent)  # Reset channel intent
-    return channelnumlines, channelsentiments
-
-
 # Load chat classification model
 # Model reconstruction from JSON file
-with open('IntentClassification/model_architecture.json', 'r') as f1:
+with open('../../tools/IntentClassification/model_architecture.json', 'r') as f1:
     model = model_from_json(f1.read())
 
 # Load weights into the new model
-model.load_weights('IntentClassification/model_weights.h5')
+model.load_weights('../../tools/IntentClassification/model_weights.h5')
 
 # Load Word Tokenizer
-with open('IntentClassification/tokenizer.pickle', 'rb') as handle:
+with open('../../tools/IntentClassification/tokenizer.pickle', 'rb') as handle:
     word_tokenizer = pickle.load(handle)
 
 # Load Max Length of a message
-with open('IntentClassification/maxlen.txt', 'r') as f2:
+with open('../../tools/IntentClassification/maxlen.txt', 'r') as f2:
     max_length = int(f2.readline())
 
 # Setup Kafka Consumer
@@ -122,35 +70,68 @@ consumer = KafkaConsumer(
      enable_auto_commit=True,
      group_id='my-group')
 
+#Setup channel analytics class for consumer code
+class channelanalytics:
+    def __init__(self):
+        #Logging Channel Analytics
+        self.channelnumlines = {}
+        self.channelsentiments = {}
+        self.unique_intent = ['question', 'disappointment', 'funny', 'neutral']
+        #Logging Time
+        self.beginningtime = time.time()
+        self.starttime = time.time()
+
+    def initializecounter(self, channel):
+        channelnumlines[channel] = 0
+        for intent in self.unique_intent:
+            channelsentiments[channel][intent] = 0
+
+    def incrementchannel(self, channel, message):
+        channelnumlines[channel] += 1
+        sentiment = get_final_output(
+        predictions(
+            word_tokenizer,
+            text,
+            model,
+            max_length),
+            self.unique_intent,
+             'classify')#Perform an intent classification
+        channelsentiments[channel][sentiment] += 1
+
+    def databaseupdate(self,channel):
+        dateandtime = str(time.asctime())
+        numlines = self.channelnumlines[channel]
+        lastsentiment = {}
+        for intent in self.unique_intent:
+            lastsentiment[intent] = self.channelsentiments[channel][intent]
+        sql = """INSERT INTO ChatAnalytics (channelname, date, time, nummessages, question, disappointment, funny, neutral)
+        VALUES(%s, CURRENT_DATE, CURRENT_TIME, %s, %s, %s, %s, %s);"""
+        cur.execute(
+        sql,
+        (channel,
+        numlines,
+        lastsentiment['question'],
+        lastsentiment['disappointment'],
+        lastsentiment['funny'],
+        lastsentiment['neutral']))
+        conn.commit()
+        print("Data point committed at ", datetime.datetime.now())
+
 if __name__ == '__main__':
     # Setup tracking variables
-    # For capturing data at set time intervalsmodel
-    beginningtime = time.time()
-    starttime= time.time()
-    logtimeinterval= 5
-    # For counting messages
-    channelnumlines= {}
-    # For intent classification
-    channelsentiments= {}
-    unique_intent= ['question', 'disappointment', 'funny', 'neutral']
-
+    channels = channelanalytics()
     # begin logging chats
     try:
         for message in consumer:
             line = message.value  # Takes message from consumer object
             [date, timeofday, channel, text]= processline(line.decode())  # Process contents of the message
-            if channel not in channelnumlines:  # If channel wasn't previously tracked, start tracking
-                channelnumlines[channel]= 0
-                channelsentiments[channel]= initializeintentcounter(unique_intent)
-            channelsentiments[channel] = getmessagesentiment(channelsentiments[channel], word_tokenizer, text, model, max_length, unique_intent)  # Increment a sentiment
-            # Increment the number of messages in that channel
-            channelnumlines[channel] += 1
-
-            # Every interval, perform analysis
-            if time.time() - starttime >= logtimeinterval:
-                # clear_output()
+            if channel not in channels.channelnumlines:  # If channel wasn't previously tracked, start tracking
+                channels.initializecounter(channel)
+            channels.incrementchannel(channel, text)# Increment a sentiment and number of lines
+            if time.time() - channels.starttime >= logtimeinterval:# Every interval, perform analysis
                 for channel in channelnumlines:
-                    [channelnumlines, channelsentiments]= databaseupdate(channelnumlines, channelsentiments, channel, unique_intent)
-                starttime = time.time()  # Reset the start time
+                    [channelnumlines, channelsentiments]= channels.databaseupdate(channel)#Export information to database
+                    channels.initializecounter(channel)#Reinitalize counter for next cycle
+                channels.starttime = time.time()  # Reset the start time
     except KeyboardInterrupt:  # Let user stop logging when keyboard command is sent
         conn.close()  # Close connection after everything is done
