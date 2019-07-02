@@ -1,16 +1,18 @@
 const tmi = require('tmi.js');
 var credentials = require('./credentials');
 var Kafka = require('node-rdkafka');
+const fs = require('fs');
 // Kafka Producer: This call returns a new writable stream to our topic 'twitchmessages'
+var hosts = fs.readFileSync('KafkaBrokers.txt');
+hosts = hosts.toString();
 var stream = Kafka.Producer.createWriteStream({
-  'metadata.broker.list': 'ec2-3-209-146-134.compute-1.amazonaws.com, ec2-18-205-11-135.compute-1.amazonaws.com, ec2-3-209-201-239.compute-1.amazonaws.com'
+  'metadata.broker.list': hosts,
 }, {}, {
   topic: 'twitchmessages'
 });
 
 
 // Setup Writefile
-const fs = require('fs');
 const writepath='messagelog.csv'
 
 // Define configuration options
