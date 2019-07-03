@@ -1,15 +1,45 @@
-# ./app.py
-from flask import Flask, request, render_template
+from flask import render_template, request, redirect
+from app import app
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.interval import IntervalTrigger
+from app.forms import information_form
+import os
 from pusher import Pusher
 import requests, json, atexit, time, plotly, plotly.graph_objs as go
 import psycopg2
 import operator
 import time
+from flask_wtf import FlaskForm
+from wtforms import StringField, SubmitField
+from wtforms.validators import DataRequired
+import os
+SECRET_KEY = os.urandom(32)
+app.config['SECRET_KEY'] = SECRET_KEY
 
-# create flask app
-app = Flask(__name__)
+@app.route('/success')
+def success():
+    scheduler = BackgroundScheduler()
+    # create schedule for retrieving prices
+    scheduler.start()
+    scheduler.add_job(
+        func=retrieve_data,
+        trigger=IntervalTrigger(seconds=5),
+        id='chat_analytics_retrieval_job',
+        name='Retrieve prices every 5 seconds',
+        replace_existing=True)
+    # Shut down the scheduler when exiting the app
+    atexit.register(lambda: scheduler.shutdown())
+    return render_template('index.html', title='Success')
+
+@app.route('/')
+@app.route('/', methods=['GET', 'POST'])
+def login():
+    form = information_form()
+    if form.validate_on_submit():
+        global channelname
+        channelname = form.channelname.data
+        return redirect('/success')
+    return render_template('form.html', form=form)
 
 # configure pusher object
 with open ('pusherinfo.txt', 'r') as file:
@@ -40,21 +70,15 @@ except Exception as e:
     print("Can't connect. Invalid dbname, user or password?")
     print(e)
 
-
 # define variables for data retrieval
 times = []
 nummessages = []
 
-
-@app.route("/")
-def index():
-    return render_template("index.html")
-
 def retrieve_data():
     #Query from PostgreSQL
-    timetocollect = 60
-    channelname = 'gamesdonequick'
-    SQL = "select * from chatanalytics where (extract(epoch from now()::timestamp)-extract(epoch from (date ||' '||time)::timestamp))<%d and channelname = '%s';" % (timetocollect, channelname)
+    timetocollect = 6000
+    print("Now tracking ", channelname)
+    SQL = "select * from chatanalytics where (extract(epoch from now()::timestamp)-extract(epoch from (date ||' '||time)::timestamp))<%d and channelname = '%s' order by output_id desc limit 10;" % (timetocollect, channelname)
     cur.execute(SQL)
     sqldata = cur.fetchall()
 
@@ -63,7 +87,6 @@ def retrieve_data():
     nummessagevector = []
     sentimentvector = []
     sentiment = {}
-
     for datapoint in sqldata:
         timevector.append(datapoint[3].strftime("%H:%M:%S"))
         nummessagevector.append(datapoint[4])
@@ -77,7 +100,6 @@ def retrieve_data():
         sentiment["neutral"] = nneutral
         latestchannelsentiment = max(sentiment.items(), key=operator.itemgetter(1))[0]
         sentimentvector.append(latestchannelsentiment)
-
 
     # create an array of traces for graph data
     graph_data = [go.Scatter(
@@ -94,19 +116,3 @@ def retrieve_data():
 
     # trigger event
     pusher.trigger("crypto", "data-updated", data)
-
-# create schedule for retrieving prices
-scheduler = BackgroundScheduler()
-scheduler.start()
-scheduler.add_job(
-    func=retrieve_data,
-    trigger=IntervalTrigger(seconds=5),
-    id='chat_analytics_retrieval_job',
-    name='Retrieve prices every 5 seconds',
-    replace_existing=True)
-# Shut down the scheduler when exiting the app
-atexit.register(lambda: scheduler.shutdown())
-
-
-# run Flask app
-app.run(debug=True, use_reloader=False)
